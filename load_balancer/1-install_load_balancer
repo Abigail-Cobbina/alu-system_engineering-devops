@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# This script installs HAProxy and balances traffic between web-01 and web-02 with roundrobin
+apt-get update -y
+apt-get install -y haproxy
+cat >> /etc/haproxy/haproxy.cfg << EOF
+
+frontend http_front
+    bind *:80
+    mode http
+    default_backend http_back
+
+backend http_back
+    mode http
+    balance roundrobin
+    server 7262-web-01 WEB01_IP:80 check
+    server 7262-web-02 WEB02_IP:80 check
+EOF
+echo "ENABLED=1" > /etc/default/haproxy
+service haproxy restart
