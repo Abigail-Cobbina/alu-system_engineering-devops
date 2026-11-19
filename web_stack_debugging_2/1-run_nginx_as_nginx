@@ -6,11 +6,26 @@ id nginx >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/
 service nginx stop || true
 
 sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf
-sed -i 's/listen 80/listen 8080/g; s/\]:80/]:8080/g' /etc/nginx/sites-enabled/default
-sed -i 's#^pid .*;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
+
+if ! grep -q '^user nginx;' /etc/nginx/nginx.conf; then
+    sed -i '1i user nginx;' /etc/nginx/nginx.conf
+fi
+
+if grep -q '^pid ' /etc/nginx/nginx.conf; then
+    sed -i 's#^pid .*;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
+else
+    sed -i '1i pid /tmp/nginx.pid;' /etc/nginx/nginx.conf
+fi
+
+find /etc/nginx -type f -exec sed -i \
+    -e 's/listen 80\([;[:space:]]\)/listen 8080\1/g' \
+    -e 's/\]:80\([;[:space:]]\)/]:8080\1/g' {} +
 
 mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
 chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
 
 rm -f /tmp/nginx.pid
+
+nginx -t || exit 1
+
 su -s /bin/sh nginx -c '/usr/sbin/nginx'
