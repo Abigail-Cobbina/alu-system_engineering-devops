@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Configure Nginx to run as nginx on port 8080
+
+id nginx >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin nginx
+
+service nginx stop || true
+
+sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf
+sed -i 's/listen 80/listen 8080/g; s/\]:80/]:8080/g' /etc/nginx/sites-enabled/default
+sed -i 's#^pid .*;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
+
+mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
+chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
+
+rm -f /tmp/nginx.pid
+su -s /bin/sh nginx -c '/usr/sbin/nginx'
