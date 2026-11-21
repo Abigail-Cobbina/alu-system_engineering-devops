@@ -1,36 +1,10 @@
 #!/usr/bin/env bash
-# Configure Nginx to run as nginx on port 8080
-
-id nginx >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin nginx
-
-service nginx stop || true
-
-if grep -q '^user ' /etc/nginx/nginx.conf; then
-    sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf
-else
-    sed -i '1i user nginx;' /etc/nginx/nginx.conf
-fi
-
-if grep -q '^pid ' /etc/nginx/nginx.conf; then
-    sed -i 's#^pid .*;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
-else
-    sed -i '1i pid /tmp/nginx.pid;' /etc/nginx/nginx.conf
-fi
-
-for config in /etc/nginx/sites-available/* /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
-    [ -f "$config" ] || continue
-
-    sed -i 's/listen 80\([;[:space:]]\)/listen 8080\1/g; s/\]:80\([;[:space:]]\)/]:8080\1/g' "$config"
-done
-
-mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
-chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
-
-rm -f /tmp/nginx.pid
-touch /tmp/nginx.pid
-chown nginx:nginx /tmp/nginx.pid
-
-su -s /bin/sh nginx -c '/usr/sbin/nginx -t' || exit 1
-
-su -s /bin/sh nginx -c '/usr/sbin/nginx'
-
+# This script configures nginx to run as the nginx user and listen on port 8080
+chmod 644 /etc/nginx/nginx.conf
+sed -i 's/^#\?user .*/user nginx;/' /etc/nginx/nginx.conf
+grep -q '^user nginx;' /etc/nginx/nginx.conf || sed -i '1i user nginx;' /etc/nginx/nginx.conf
+sed -i 's/\b80\b/8080/g' /etc/nginx/sites-available/default
+pkill apache2
+pkill nginx
+sleep 1
+sudo -u nginx service nginx start
